@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { ScreenHeader } from '../../components/ui/ScreenHeader'
 import { Card } from '../../components/ui/Card'
 import { Avatar } from '../../components/ui/Avatar'
@@ -72,6 +72,10 @@ function CameraIcon() {
  */
 export default function SocialProfileEdit() {
   const navigate = useNavigate()
+  // Opened from somewhere other than Pal onboarding (e.g. an anonymous
+  // chat's "Share your profile?" sheet)? Then Save/Cancel go back there,
+  // carrying whatever state that screen asked to get back.
+  const { state } = useLocation() as { state?: { returnTo?: string; returnState?: unknown } }
   const me = useDemoStore((s) => s.me)
   const updateSocialProfile = useDemoStore((s) => s.updateSocialProfile)
 
@@ -83,7 +87,10 @@ export default function SocialProfileEdit() {
   const [avatarSheetOpen, setAvatarSheetOpen] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
-  const goToPreview = () => navigate('/pixel-pal-match/social-profile-preview')
+  const goToPreview = () =>
+    state?.returnTo
+      ? navigate(state.returnTo, { replace: true, state: state.returnState })
+      : navigate('/pixel-pal-match/social-profile-preview')
 
   const handleSave = () => {
     updateSocialProfile({

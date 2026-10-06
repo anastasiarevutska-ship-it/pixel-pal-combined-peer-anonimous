@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useDemoStore } from '../../store/useDemoStore'
 import { ME_ID } from '../../lib/seed'
 import { anonymousPalIdentities } from '../../lib/palLabel'
 import { QuietChatNotice } from '../../components/QuietChatNotice'
 import { ProfilePreviewSheet } from '../../components/ProfilePreviewSheet'
+import { SocialProfileCard } from '../../components/SocialProfileCard'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
 import { Modal } from '../../components/ui/Modal'
+import { Sheet } from '../../components/ui/Sheet'
 import { Toast } from '../../components/ui/Toast'
 import { ReportReasonScreen } from '../../components/ReportReasonScreen'
 
@@ -84,6 +86,8 @@ type MockAttachment = { type: 'image' | 'file'; name: string }
  */
 export default function Chat() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { pathname } = location
   const { conversationId } = useParams<{ conversationId: string }>()
   const conversations = useDemoStore((s) => s.conversations)
   const people = useDemoStore((s) => s.people)
@@ -94,7 +98,16 @@ export default function Chat() {
   const graduateConversation = useDemoStore((s) => s.graduateConversation)
 
   const [draft, setDraft] = useState('')
-  const [profileModalOpen, setProfileModalOpen] = useState(false)
+  // Reopened on return from "Edit Social Profile" (see the share sheet).
+  const [profileModalOpen, setProfileModalOpen] = useState(
+    () => !!(location.state as { openShareSheet?: boolean } | null)?.openShareSheet,
+  )
+  // One-shot: drop that flag once read, so a reload doesn't reopen it.
+  useEffect(() => {
+    if ((location.state as { openShareSheet?: boolean } | null)?.openShareSheet) {
+      navigate(pathname, { replace: true, state: null })
+    }
+  }, [location.state, navigate, pathname])
   const [hideProfileConfirmOpen, setHideProfileConfirmOpen] = useState(false)
   const [profilePreviewOpen, setProfilePreviewOpen] = useState(false)
   // Set once she hides her profile this visit — holds back the "Ready to
@@ -507,30 +520,52 @@ export default function Chat() {
         }
       />
 
-      <Modal isOpen={profileModalOpen} onClose={() => setProfileModalOpen(false)} title="Share your profile?">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3 rounded-card bg-lavender-20 p-3">
-            <Avatar name={me.displayName} src={me.avatarUrl} size="md" />
-            <p className="text-body-bold text-navy">{me.displayName}</p>
+      {/* Share confirmation — shows her whole Social Profile, exactly as
+          the other person will see it (same card as Pal Auto Match's
+          preview), with a way to fix anything first. "Edit" goes to the
+          shared edit screen and comes straight back here with this sheet
+          reopened. */}
+      <Sheet
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        title="Share your profile?"
+        footer={
+          <div className="flex flex-col gap-3">
+            <Button
+              variant="primary"
+              onClick={() => {
+                shareMyProfile(convo.id)
+                setProfileModalOpen(false)
+              }}
+            >
+              Share my profile
+            </Button>
+            <Button
+              variant="soft-outline"
+              onClick={() =>
+                navigate('/pixel-pal-match/social-profile-edit', {
+                  // Replace, both ways, so the chat's own Back still
+                  // leaves the chat rather than stepping into the editor.
+                  replace: true,
+                  state: { returnTo: pathname, returnState: { openShareSheet: true } },
+                })
+              }
+            >
+              Edit Social Profile
+            </Button>
           </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
           <p className="text-body-sm text-navy-60">
-            They'll see your name and photo. They'll be asked to share theirs too — sharing is
-            always mutual, never automatic.
+            This is how they'll see you. They'll be asked to share theirs too — sharing is always
+            mutual, never automatic.
           </p>
-          <Button
-            variant="primary"
-            onClick={() => {
-              shareMyProfile(convo.id)
-              setProfileModalOpen(false)
-            }}
-          >
-            Share my profile
-          </Button>
-          <Button variant="ghost" onClick={() => setProfileModalOpen(false)}>
-            Not yet
-          </Button>
+          <div className="rounded-card bg-lavender-20 p-4">
+            <SocialProfileCard person={me} />
+          </div>
         </div>
-      </Modal>
+      </Sheet>
 
       {/* Conversation options — chat management, not identity (that's "Share
           my profile" above, kept separate on purpose: it's about the
