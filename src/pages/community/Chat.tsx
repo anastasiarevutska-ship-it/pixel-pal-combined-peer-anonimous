@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDemoStore } from '../../store/useDemoStore'
 import { ME_ID } from '../../lib/seed'
-import { anonymousPalLabels } from '../../lib/palLabel'
+import { anonymousPalIdentities } from '../../lib/palLabel'
 import { Avatar } from '../../components/ui/Avatar'
 import { AnonymousAvatar } from '../../components/ui/AnonymousAvatar'
 import { Button } from '../../components/ui/Button'
@@ -148,9 +148,9 @@ export default function Chat() {
   const meShared = convo.profileShared?.[ME_ID]
   const otherShared = convo.profileShared?.[otherId]
   const bothShared = meShared && otherShared
-  // Same stable label as the chat list (see lib/palLabel) — this connection
-  // must read as the same "Anonymous Pal N" here as it does there.
-  const palLabel = anonymousPalLabels(Object.values(conversations), ME_ID)[convo.id]
+  // Same stable nickname as Messages and Your Post (see lib/palLabel) —
+  // this connection must read as the same person here as it does there.
+  const anon = anonymousPalIdentities(Object.values(conversations), me, people)[convo.id]
   // The profile-sharing prompt is demo-gated behind an actual back-and-forth
   // — showing it the instant the chat opens (before she's said anything
   // herself) would front-load an identity decision ahead of the
@@ -233,10 +233,10 @@ export default function Chat() {
         {bothShared ? (
           <Avatar name={otherPerson?.displayName ?? 'Pixel Pal'} src={otherPerson?.avatarUrl} size="md" />
         ) : (
-          <AnonymousAvatar size="md" />
+          <AnonymousAvatar seed={anon?.seed} size="md" />
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-body-bold text-navy">{bothShared ? otherPerson?.displayName : palLabel}</p>
+          <p className="text-body-bold text-navy">{bothShared ? otherPerson?.displayName : anon?.name}</p>
           <p className="truncate text-label text-navy-40">
             {bothShared ? "You've introduced yourselves" : 'Still anonymous to each other'}
           </p>

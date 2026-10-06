@@ -10,8 +10,8 @@ import { AnonymousAvatar } from '../components/ui/AnonymousAvatar'
 import { useDemoStore } from '../store/useDemoStore'
 import { ME_ID } from '../lib/seed'
 import { relativeTime } from '../lib/relativeTime'
-import { anonymousPalLabels } from '../lib/palLabel'
-import type { Ask, Conversation, ConversationStatus, Person } from '../lib/types'
+import { anonymousPalIdentities, type AnonIdentity } from '../lib/palLabel'
+import type { Conversation, ConversationStatus, Person } from '../lib/types'
 import bgGlow from '../assets/shared/bg-glow.png'
 import iconUserHeart from '../assets/shared/icon-user-heart.svg'
 
@@ -38,8 +38,7 @@ function conversationStatusLabel(status: ConversationStatus): string | undefined
 type ConversationRowProps = {
   conversation: Conversation
   people: Record<string, Person>
-  asks: Record<string, Ask>
-  askAnonLabel?: string
+  anon?: AnonIdentity
 }
 
 function ChevronRight() {
@@ -59,7 +58,7 @@ function ChevronRight() {
  * shows the real person. The secondary line says which kind of chat it is
  * ("Pixel Pal" / "Peer chat"), plus the lifecycle status once it's past.
  */
-function ConversationRow({ conversation, people, asks, askAnonLabel }: ConversationRowProps) {
+function ConversationRow({ conversation, people, anon }: ConversationRowProps) {
   const navigate = useNavigate()
   const otherId = conversation.participantIds.find((id) => id !== ME_ID)
   const otherPerson = otherId ? people[otherId] : undefined
@@ -69,22 +68,25 @@ function ConversationRow({ conversation, people, asks, askAnonLabel }: Conversat
   let avatar
   let name: string | undefined
   let isNew = false
+  let isAnon = false
   if (isPal) {
     avatar = <Avatar name={otherPerson?.displayName ?? 'Pixel Pal'} src={otherPerson?.avatarUrl} size="sm" />
     name = otherPerson?.displayName ?? 'Pixel Pal'
   } else {
     const bothShared = !!otherId && !!conversation.profileShared?.[ME_ID] && !!conversation.profileShared?.[otherId]
-    const seed = (conversation.askId ? asks[conversation.askId]?.anonSeed : undefined) ?? conversation.id.length
     avatar = bothShared ? (
       <Avatar name={otherPerson?.displayName ?? 'Pixel Pal'} src={otherPerson?.avatarUrl} size="sm" />
     ) : (
-      <AnonymousAvatar seed={seed} size="sm" />
+      <AnonymousAvatar seed={anon?.seed} size="sm" />
     )
-    name = bothShared ? otherPerson?.displayName : askAnonLabel
+    name = bothShared ? otherPerson?.displayName : anon?.name
+    isAnon = !bothShared
     isNew = conversation.messages.length <= 1
   }
 
-  const kind = isPal ? 'Pixel Pal' : 'Peer chat'
+  // Still-anonymous chats say so in the secondary line — the nickname alone
+  // could be someone's real Social Profile alias (see lib/palLabel).
+  const kind = isPal ? 'Pixel Pal' : isAnon ? 'Anonymous · Peer chat' : 'Peer chat'
   const path = isPal
     ? `/pixel-pal-match/chat/${conversation.id}`
     : `/groups/pixel-pal/chat/${conversation.id}`
@@ -135,8 +137,8 @@ function ConversationRow({ conversation, people, asks, askAnonLabel }: Conversat
 export default function Messages() {
   const navigate = useNavigate()
   const conversations = useDemoStore((s) => s.conversations)
-  const asks = useDemoStore((s) => s.asks)
   const people = useDemoStore((s) => s.people)
+  const me = useDemoStore((s) => s.me)
   const [pastOpen, setPastOpen] = useState(false)
 
   const myConversations = Object.values(conversations)
@@ -155,9 +157,9 @@ export default function Messages() {
     .filter((c) => !isPast(c))
     .sort((a, b) => Number(b.origin === 'pal_match') - Number(a.origin === 'pal_match'))
   const pastConversations = myConversations.filter(isPast)
-  // Ask-only numbering (see anonymousPalLabels) — a pal_match conversation
-  // never consumes a slot here, same rule as everywhere else this is read.
-  const askAnonLabels = anonymousPalLabels(Object.values(conversations), ME_ID)
+  // Ask-only nicknames (see anonymousPalIdentities) — a pal_match
+  // conversation never consumes a slot, same rule everywhere this is read.
+  const anonIdentities = anonymousPalIdentities(Object.values(conversations), me, people)
 
   // Only one active Pal Auto Match relationship is ever allowed at a time
   // (see openPalMatchConversation in the store, which enforces the same
@@ -215,8 +217,7 @@ export default function Messages() {
                 key={convo.id}
                 conversation={convo}
                 people={people}
-                asks={asks}
-                askAnonLabel={askAnonLabels[convo.id]}
+                anon={anonIdentities[convo.id]}
               />
             ))}
           </div>
@@ -241,8 +242,7 @@ export default function Messages() {
                   key={convo.id}
                   conversation={convo}
                   people={people}
-                  asks={asks}
-                  askAnonLabel={askAnonLabels[convo.id]}
+                  anon={anonIdentities[convo.id]}
                 />
               ))}
           </div>

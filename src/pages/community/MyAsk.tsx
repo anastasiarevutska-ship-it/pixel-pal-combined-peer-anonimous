@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { useDemoStore } from '../../store/useDemoStore'
 import { ME_ID } from '../../lib/seed'
+import { anonymousPalIdentities } from '../../lib/palLabel'
 import { relativeTime } from '../../lib/relativeTime'
+import { Avatar } from '../../components/ui/Avatar'
 import { AnonymousAvatar } from '../../components/ui/AnonymousAvatar'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -41,6 +43,8 @@ export default function MyAsk() {
   const asks = useDemoStore((s) => s.asks)
   const messageRequests = useDemoStore((s) => s.messageRequests)
   const conversations = useDemoStore((s) => s.conversations)
+  const people = useDemoStore((s) => s.people)
+  const me = useDemoStore((s) => s.me)
   const closeAsk = useDemoStore((s) => s.closeAsk)
   const acceptIncomingRequest = useDemoStore((s) => s.acceptIncomingRequest)
   const declineIncomingRequest = useDemoStore((s) => s.declineIncomingRequest)
@@ -56,6 +60,9 @@ export default function MyAsk() {
     : []
   const pending = requests.filter((r) => r.status === 'pending')
   const accepted = requests.filter((r) => r.status === 'accepted')
+  // Same nickname + avatar tone as Messages and the chat header, so an
+  // ongoing chat here reads as the same person there (see lib/palLabel).
+  const anonIdentities = anonymousPalIdentities(Object.values(conversations), me, people)
 
   return (
     <div className="relative flex min-h-full flex-col">
@@ -154,6 +161,11 @@ export default function MyAsk() {
                       (c) => c.askId === myAsk.id && c.participantIds.includes(request.responderId),
                     )
                     if (!convo) return null
+                    const anon = anonIdentities[convo.id]
+                    const otherId = convo.participantIds.find((id) => id !== ME_ID)
+                    const bothShared =
+                      !!otherId && !!convo.profileShared?.[ME_ID] && !!convo.profileShared?.[otherId]
+                    const other = otherId ? people[otherId] : undefined
                     return (
                       <button
                         key={request.id}
@@ -161,8 +173,19 @@ export default function MyAsk() {
                         onClick={() => navigate(`/groups/pixel-pal/chat/${convo.id}`)}
                         className="flex items-center gap-3 rounded-card bg-white p-3 text-left shadow-card"
                       >
-                        <AnonymousAvatar seed={request.id.length} size="xs" />
-                        <p className="flex-1 text-body-sm-bold text-navy">Open chat</p>
+                        {bothShared ? (
+                          <Avatar name={other?.displayName ?? 'Pixel Pal'} src={other?.avatarUrl} size="sm" />
+                        ) : (
+                          <AnonymousAvatar seed={anon?.seed} size="sm" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-body-sm-bold text-navy">
+                            {bothShared ? other?.displayName : anon?.name}
+                          </p>
+                          <p className="truncate text-label text-navy-60">
+                            {bothShared ? 'Peer chat' : 'Anonymous · Peer chat'}
+                          </p>
+                        </div>
                         <span className="text-navy-40">→</span>
                       </button>
                     )
