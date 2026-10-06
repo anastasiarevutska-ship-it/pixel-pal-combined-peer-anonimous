@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { PhoneFrame } from './ui/PhoneFrame'
 import { DemoControls } from './DemoControls'
+import { PushBanner } from './PushBanner'
 
 /** Centers every route in the device mockup and mounts the demo-controls
  * panel — same presentation convention as the other Pixel Pal prototypes. */
@@ -12,7 +13,10 @@ export function MobileShell({ children }: { children: ReactNode }) {
         ← Launcher
       </Link>
       <p className="text-label text-navy-60">Concept B — anonymous ask, then private chat</p>
-      <PhoneFrame>{children}</PhoneFrame>
+      <PhoneFrame>
+        {children}
+        <PushBanner />
+      </PhoneFrame>
       <DemoControls />
     </div>
   )

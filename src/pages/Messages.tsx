@@ -10,19 +10,11 @@ import { AnonymousAvatar } from '../components/ui/AnonymousAvatar'
 import { useDemoStore } from '../store/useDemoStore'
 import { ME_ID } from '../lib/seed'
 import { relativeTime } from '../lib/relativeTime'
+import { lastActivityAt } from '../lib/quietChat'
 import { anonymousPalIdentities, type AnonIdentity } from '../lib/palLabel'
 import type { Conversation, ConversationStatus, Person } from '../lib/types'
 import bgGlow from '../assets/shared/bg-glow.png'
 import iconUserHeart from '../assets/shared/icon-user-heart.svg'
-
-// Most recent message wins over the conversation's own createdAt — a chat
-// that's had activity since it was created should sort above one that
-// hasn't, regardless of which was created first. Falls back to createdAt
-// for a conversation with no messages yet (accepted-but-silent).
-function lastActivityAt(convo: Conversation): string {
-  const lastMessage = convo.messages[convo.messages.length - 1]
-  return lastMessage ? lastMessage.createdAt : convo.createdAt
-}
 
 // Read-only lifecycle states get a small, neutral label in the row's
 // secondary line (and live under the collapsed "Past" section below) rather

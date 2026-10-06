@@ -9,6 +9,7 @@ import { Modal } from '../../components/ui/Modal'
 import { TextArea } from '../../components/ui/TextArea'
 import { Toast } from '../../components/ui/Toast'
 import { ReportReasonScreen } from '../../components/ReportReasonScreen'
+import { QuietChatNotice } from '../../components/QuietChatNotice'
 
 const starters = [
   {
@@ -283,6 +284,7 @@ export default function PixelPalChat() {
               </div>
             )
           })}
+          {!isReadOnly && <QuietChatNotice convo={convo} otherName={palName} />}
           <div ref={endRef} />
         </div>
 

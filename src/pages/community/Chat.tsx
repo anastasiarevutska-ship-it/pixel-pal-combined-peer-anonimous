@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useDemoStore } from '../../store/useDemoStore'
 import { ME_ID } from '../../lib/seed'
 import { anonymousPalIdentities } from '../../lib/palLabel'
+import { QuietChatNotice } from '../../components/QuietChatNotice'
 import { Avatar } from '../../components/ui/Avatar'
 import { AnonymousAvatar } from '../../components/ui/AnonymousAvatar'
 import { Button } from '../../components/ui/Button'
@@ -300,6 +301,9 @@ export default function Chat() {
               </div>
             )
           })}
+          {!isReadOnly && (
+            <QuietChatNotice convo={convo} otherName={bothShared ? otherPerson?.displayName : anon?.name} />
+          )}
           <div ref={endRef} />
         </div>
       </div>

@@ -22,6 +22,7 @@ export function DemoControls() {
   const simulateAskAuthorResponds = useDemoStore((s) => s.simulateAskAuthorResponds)
   const simulateReply = useDemoStore((s) => s.simulateReply)
   const simulateOtherSharesProfile = useDemoStore((s) => s.simulateOtherSharesProfile)
+  const simulateQuietChat = useDemoStore((s) => s.simulateQuietChat)
   const matchOutcomeDemo = useDemoStore((s) => s.matchOutcomeDemo)
   const setMatchOutcomeDemo = useDemoStore((s) => s.setMatchOutcomeDemo)
   const homePromoDemo = useDemoStore((s) => s.homePromoDemo)
@@ -102,6 +103,23 @@ export function DemoControls() {
               className="rounded-field border border-navy-20 px-3 py-2 text-left text-body-sm disabled:opacity-40"
             >
               They share their profile too
+            </button>
+            <button
+              type="button"
+              disabled={
+                !activeConversation ||
+                (!!activeConversation.status && activeConversation.status !== 'active')
+              }
+              onClick={() => {
+                if (!activeConversation) return
+                simulateQuietChat(activeConversation.id)
+                // Leave the chat so the push arrives the way a real one
+                // would — from elsewhere in the app; tapping it comes back.
+                navigate('/messages')
+              }}
+              className="rounded-field border border-navy-20 px-3 py-2 text-left text-body-sm disabled:opacity-40"
+            >
+              2 weeks of silence → reminder
             </button>
           </div>
 

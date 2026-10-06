@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { lastActivityAt, QUIET_AFTER_DAYS } from '../lib/quietChat'
 import { me, ME_ID, palMatchPeople, people, reserveResponders, seedAsks } from '../lib/seed'
 import type { Ask, ChatMessage, Conversation, ConversationStatus, MessageRequest, Person } from '../lib/types'
 
@@ -119,6 +120,14 @@ type State = {
   // Conversation-level actions — see the chat header's overflow menu
   graduateConversation: (conversationId: string) => void
   blockPerson: (conversationId: string) => void
+
+  // Demo-only: rewinds a chat's clock past QUIET_AFTER_DAYS (lib/quietChat)
+  // and fires the reminder push, so the quiet-chat state can be shown
+  // without waiting two real weeks.
+  simulateQuietChat: (conversationId: string) => void
+  /** The one push banner currently on screen — transient, never persisted. */
+  pushNotification: { conversationId: string } | null
+  dismissPush: () => void
 
   resetDemo: () => void
 }
@@ -544,8 +553,38 @@ export const useDemoStore = create<State>()(
         }))
       },
 
-      resetDemo: () => set(buildInitialState()),
+      simulateQuietChat: (conversationId: string) => {
+        const convo = get().conversations[conversationId]
+        if (!convo || isConversationClosed(convo.status)) return
+        // Shift the whole thread back, not just the last message, so
+        // relative times and ordering stay believable. Lands the last
+        // activity at exactly QUIET_AFTER_DAYS + 1 days ago, however many
+        // times this is pressed.
+        const latest = new Date(lastActivityAt(convo)).getTime()
+        const shift = latest - (Date.now() - (QUIET_AFTER_DAYS + 1) * 86_400_000)
+        const back = (iso: string) => new Date(new Date(iso).getTime() - shift).toISOString()
+        set((st) => ({
+          conversations: {
+            ...st.conversations,
+            [conversationId]: {
+              ...convo,
+              createdAt: back(convo.createdAt),
+              messages: convo.messages.map((m) => ({ ...m, createdAt: back(m.createdAt) })),
+            },
+          },
+          pushNotification: { conversationId },
+        }))
+      },
+
+      pushNotification: null,
+      dismissPush: () => set({ pushNotification: null }),
+
+      resetDemo: () => set({ ...buildInitialState(), pushNotification: null }),
     }),
-    { name: 'pixel-pal-concept-b-demo' },
+    {
+      name: 'pixel-pal-concept-b-demo',
+      // A push is a moment, not state — it must not reappear on reload.
+      partialize: ({ pushNotification: _push, ...rest }) => rest,
+    },
   ),
 )
