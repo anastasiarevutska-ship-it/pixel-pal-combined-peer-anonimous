@@ -6,7 +6,6 @@ import { GreetingHeader } from '../components/GreetingHeader'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Avatar } from '../components/ui/Avatar'
-import { AnonymousAvatar } from '../components/ui/AnonymousAvatar'
 import { useDemoStore } from '../store/useDemoStore'
 import { ME_ID } from '../lib/seed'
 import { relativeTime } from '../lib/relativeTime'
@@ -45,8 +44,8 @@ function ChevronRight() {
  * One compact row in the unified inbox: avatar, name, a single quiet
  * secondary line, time and chevron — no message snippets or ask quotes, so
  * ten-plus conversations stay scannable. Origin still decides identity: an
- * ask-origin row respects its anonymity/reveal state (anonymous label +
- * silhouette until profiles are mutually shared), a pal_match row always
+ * ask-origin row respects its anonymity/reveal state (nickname + its
+ * initials until profiles are mutually shared), a pal_match row always
  * shows the real person. The secondary line says which kind of chat it is
  * ("Pixel Pal" / "Peer chat"), plus the lifecycle status once it's past.
  */
@@ -66,12 +65,11 @@ function ConversationRow({ conversation, people, anon }: ConversationRowProps) {
     name = otherPerson?.displayName ?? 'Pixel Pal'
   } else {
     const bothShared = !!otherId && !!conversation.profileShared?.[ME_ID] && !!conversation.profileShared?.[otherId]
-    avatar = bothShared ? (
-      <Avatar name={otherPerson?.displayName ?? 'Pixel Pal'} src={otherPerson?.avatarUrl} size="sm" />
-    ) : (
-      <AnonymousAvatar seed={anon?.seed} size="sm" />
-    )
     name = bothShared ? otherPerson?.displayName : anon?.name
+    // Initials of whichever name is showing — the nickname while anonymous,
+    // so every row in the list shares one avatar style. Never the real
+    // photo before both have shared.
+    avatar = <Avatar name={name ?? 'Anonymous'} src={bothShared ? otherPerson?.avatarUrl : undefined} size="sm" />
     isAnon = !bothShared
     isNew = conversation.messages.length <= 1
   }

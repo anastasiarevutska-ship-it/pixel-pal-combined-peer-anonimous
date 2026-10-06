@@ -173,11 +173,11 @@ export default function MyAsk() {
                         onClick={() => navigate(`/groups/pixel-pal/chat/${convo.id}`)}
                         className="flex items-center gap-3 rounded-card bg-white p-3 text-left shadow-card"
                       >
-                        {bothShared ? (
-                          <Avatar name={other?.displayName ?? 'Pixel Pal'} src={other?.avatarUrl} size="sm" />
-                        ) : (
-                          <AnonymousAvatar seed={anon?.seed} size="sm" />
-                        )}
+                        <Avatar
+                          name={(bothShared ? other?.displayName : anon?.name) ?? 'Anonymous'}
+                          src={bothShared ? other?.avatarUrl : undefined}
+                          size="sm"
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-body-sm-bold text-navy">
                             {bothShared ? other?.displayName : anon?.name}

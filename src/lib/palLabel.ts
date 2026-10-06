@@ -8,12 +8,13 @@ import type { Conversation, Person, PersonId } from './types'
 
 /**
  * Nicknames for anonymous chats — powerful women from mythology and history
- * (public domain, so no character trademarks). Order matters: a
- * connection's nickname is its creation-order slot in this list.
+ * (public domain, so no character trademarks). Every name starts with a
+ * different letter, so their initials avatars never look alike. Order
+ * matters: a connection's nickname is its creation-order slot in this list.
  */
 export const ANON_NICKNAMES = [
   'Athena',
-  'Artemis',
+  'Selene',
   'Freya',
   'Boudica',
   'Cleopatra',
@@ -21,14 +22,13 @@ export const ANON_NICKNAMES = [
   'Durga',
   'Valkyrie',
   'Hippolyta',
-  'Hypatia',
+  'Juno',
 ] as const
 
 export type AnonIdentity = {
-  /** The nickname shown while the chat is still anonymous. */
+  /** The nickname shown while the chat is still anonymous — also what its
+   * initials avatar is drawn from. */
   name: string
-  /** Stable AnonymousAvatar seed, so the avatar tone follows the nickname. */
-  seed: number
 }
 
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -43,8 +43,8 @@ const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
  * can see (her own, or anyone she talks to) is skipped: an anonymous chat
  * must never read like a revealed profile, and a revealed "Athena"
  * must never be confused with an anonymous one. Screens also always pair the
- * nickname with the silhouette avatar + "Anonymous" line, never a real
- * avatar, for the same reason.
+ * nickname with an "Anonymous" line and an initials avatar, never a real
+ * photo, for the same reason.
  *
  * Ask-origin only. A `pal_match` conversation is never anonymous (identity
  * is revealed from the start — see Conversation.origin in lib/types.ts), so
@@ -65,17 +65,17 @@ export function anonymousPalIdentities(
     taken.add(normalize(p.alias))
     taken.add(normalize(p.displayName))
   }
-  const pool = ANON_NICKNAMES.map((name, seed) => ({ name, seed })).filter((n) => !taken.has(normalize(n.name)))
+  const pool = ANON_NICKNAMES.filter((name) => !taken.has(normalize(name)))
 
   const identities: Record<string, AnonIdentity> = {}
   mine
     .filter((c) => c.origin === 'ask')
     .forEach((c, i) => {
-      const slot = pool[i % pool.length]
+      const name = pool[i % pool.length]
       // Past the end of the pool, add a round number rather than repeat a
-      // nickname outright ("Artemis 2").
+      // nickname outright ("Selene 2").
       const round = Math.floor(i / pool.length)
-      identities[c.id] = { name: round ? `${slot.name} ${round + 1}` : slot.name, seed: slot.seed }
+      identities[c.id] = { name: round ? `${name} ${round + 1}` : name }
     })
   return identities
 }

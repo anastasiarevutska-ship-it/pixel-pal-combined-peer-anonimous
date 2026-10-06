@@ -2,7 +2,7 @@ import type { Person } from '../lib/types'
 import type { AnonIdentity } from '../lib/palLabel'
 import { Sheet } from './ui/Sheet'
 import { Button } from './ui/Button'
-import { AnonymousAvatar } from './ui/AnonymousAvatar'
+import { Avatar } from './ui/Avatar'
 import { SocialProfileCard } from './SocialProfileCard'
 
 type ProfilePreviewSheetProps = {
@@ -23,7 +23,7 @@ type ProfilePreviewSheetProps = {
  * What tapping the avatar in a chat header opens. With a visible profile,
  * it's the same Social Profile card the onboarding preview shows. While a
  * chat is still anonymous it never leaks anything: just the nickname and
- * silhouette, plus where the reveal stands and (if she hasn't yet) the way
+ * initials, plus where the reveal stands and (if she hasn't yet) the way
  * to share her own.
  */
 export function ProfilePreviewSheet({ isOpen, onClose, person, anon, meShared, onShareProfile }: ProfilePreviewSheetProps) {
@@ -49,7 +49,7 @@ export function ProfilePreviewSheet({ isOpen, onClose, person, anon, meShared, o
       }
     >
       <div className="flex flex-col gap-3">
-        <AnonymousAvatar seed={anon?.seed} size="lg" />
+        <Avatar name={anon?.name ?? 'Anonymous'} size="lg" />
         <div>
           <p className="text-h4 text-navy">{anon?.name ?? 'Anonymous'}</p>
           <p className="text-body-sm text-navy-60">Anonymous</p>

@@ -16,11 +16,11 @@ const sizes: Record<AnonymousAvatarSize, string> = {
 const tones = ['bg-lavender-40', 'bg-yellow-40', 'bg-lavender-80', 'bg-yellow-80', 'bg-lavender-20', 'bg-navy-20']
 
 /**
- * A generic, non-identifying stand-in for a patient's real Avatar — used
- * everywhere Concept B shows someone before a mutual profile reveal (feed
- * cards, message requests, an un-revealed chat header). Deliberately a
- * silhouette, not initials: initials leak identity the moment two asks
- * share a first letter, silhouettes never do.
+ * A generic, non-identifying stand-in for someone who has no name to show
+ * yet — an incoming message request, before a chat (and its nickname)
+ * exists. Deliberately a silhouette, not initials: there's no name to take
+ * initials from that wouldn't leak identity. Once a chat exists, its
+ * nickname's initials take over (see lib/palLabel).
  */
 export function AnonymousAvatar({ seed = 0, size = 'md' }: { seed?: number; size?: AnonymousAvatarSize }) {
   const tone = tones[seed % tones.length]

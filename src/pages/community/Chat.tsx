@@ -6,7 +6,6 @@ import { anonymousPalIdentities } from '../../lib/palLabel'
 import { QuietChatNotice } from '../../components/QuietChatNotice'
 import { ProfilePreviewSheet } from '../../components/ProfilePreviewSheet'
 import { Avatar } from '../../components/ui/Avatar'
-import { AnonymousAvatar } from '../../components/ui/AnonymousAvatar'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
 import { Modal } from '../../components/ui/Modal'
@@ -247,11 +246,11 @@ export default function Chat() {
           aria-label="View profile"
           className="flex min-w-0 flex-1 items-center gap-3 text-left"
         >
-          {bothShared ? (
-            <Avatar name={otherPerson?.displayName ?? 'Pixel Pal'} src={otherPerson?.avatarUrl} size="md" />
-          ) : (
-            <AnonymousAvatar seed={anon?.seed} size="md" />
-          )}
+          <Avatar
+            name={(bothShared ? otherPerson?.displayName : anon?.name) ?? 'Anonymous'}
+            src={bothShared ? otherPerson?.avatarUrl : undefined}
+            size="md"
+          />
           <span className="min-w-0 flex-1">
             <span className="block text-body-bold text-navy">{bothShared ? otherPerson?.displayName : anon?.name}</span>
             <span className="block truncate text-label text-navy-40">
