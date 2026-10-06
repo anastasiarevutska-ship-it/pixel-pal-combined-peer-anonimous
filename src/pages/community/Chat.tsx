@@ -4,6 +4,7 @@ import { useDemoStore } from '../../store/useDemoStore'
 import { ME_ID } from '../../lib/seed'
 import { anonymousPalIdentities } from '../../lib/palLabel'
 import { QuietChatNotice } from '../../components/QuietChatNotice'
+import { ProfilePreviewSheet } from '../../components/ProfilePreviewSheet'
 import { Avatar } from '../../components/ui/Avatar'
 import { AnonymousAvatar } from '../../components/ui/AnonymousAvatar'
 import { Button } from '../../components/ui/Button'
@@ -96,6 +97,7 @@ export default function Chat() {
   const [draft, setDraft] = useState('')
   const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [hideProfileConfirmOpen, setHideProfileConfirmOpen] = useState(false)
+  const [profilePreviewOpen, setProfilePreviewOpen] = useState(false)
   // Set once she hides her profile this visit — holds back the "Ready to
   // introduce yourself?" prompt so taking it back isn't met with an
   // immediate ask to share again.
@@ -237,17 +239,26 @@ export default function Chat() {
             <ChevronLeft />
           </span>
         </button>
-        {bothShared ? (
-          <Avatar name={otherPerson?.displayName ?? 'Pixel Pal'} src={otherPerson?.avatarUrl} size="md" />
-        ) : (
-          <AnonymousAvatar seed={anon?.seed} size="md" />
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="text-body-bold text-navy">{bothShared ? otherPerson?.displayName : anon?.name}</p>
-          <p className="truncate text-label text-navy-40">
-            {bothShared ? "You've introduced yourselves" : 'Still anonymous to each other'}
-          </p>
-        </div>
+        {/* Avatar + name open the profile preview — the real Social
+            Profile once both have shared, an anonymous card until then. */}
+        <button
+          type="button"
+          onClick={() => setProfilePreviewOpen(true)}
+          aria-label="View profile"
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          {bothShared ? (
+            <Avatar name={otherPerson?.displayName ?? 'Pixel Pal'} src={otherPerson?.avatarUrl} size="md" />
+          ) : (
+            <AnonymousAvatar seed={anon?.seed} size="md" />
+          )}
+          <span className="min-w-0 flex-1">
+            <span className="block text-body-bold text-navy">{bothShared ? otherPerson?.displayName : anon?.name}</span>
+            <span className="block truncate text-label text-navy-40">
+              {bothShared ? "You've introduced yourselves" : 'Still anonymous to each other'}
+            </span>
+          </span>
+        </button>
         <button
           type="button"
           onClick={() => setMenuOpen(true)}
@@ -480,6 +491,22 @@ export default function Chat() {
           </Button>
         </div>
       </Modal>
+
+      <ProfilePreviewSheet
+        isOpen={profilePreviewOpen}
+        onClose={() => setProfilePreviewOpen(false)}
+        person={bothShared ? otherPerson : undefined}
+        anon={anon}
+        meShared={!!meShared}
+        onShareProfile={
+          isReadOnly
+            ? undefined
+            : () => {
+                setProfilePreviewOpen(false)
+                setProfileModalOpen(true)
+              }
+        }
+      />
 
       <Modal isOpen={profileModalOpen} onClose={() => setProfileModalOpen(false)} title="Share your profile?">
         <div className="flex flex-col gap-4">

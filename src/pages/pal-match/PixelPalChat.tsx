@@ -10,6 +10,7 @@ import { TextArea } from '../../components/ui/TextArea'
 import { Toast } from '../../components/ui/Toast'
 import { ReportReasonScreen } from '../../components/ReportReasonScreen'
 import { QuietChatNotice } from '../../components/QuietChatNotice'
+import { ProfilePreviewSheet } from '../../components/ProfilePreviewSheet'
 
 const starters = [
   {
@@ -113,6 +114,7 @@ export default function PixelPalChat() {
 
   const [draft, setDraft] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [profilePreviewOpen, setProfilePreviewOpen] = useState(false)
   const [findSomeoneElseOpen, setFindSomeoneElseOpen] = useState(false)
   const [graduateOpen, setGraduateOpen] = useState(false)
   const [finalMessage, setFinalMessage] = useState('')
@@ -242,8 +244,17 @@ export default function PixelPalChat() {
         >
           ←
         </button>
-        <Avatar name={otherPerson?.displayName ?? 'Pixel Pal'} src={otherPerson?.avatarUrl} size="sm" />
-        <p className="flex-1 text-body-bold">{otherPerson?.alias ?? otherPerson?.displayName}</p>
+        {/* Avatar + name open her Pal's Social Profile — never hidden in
+            Pal Auto Match, so this is always the real profile. */}
+        <button
+          type="button"
+          onClick={() => setProfilePreviewOpen(true)}
+          aria-label="View profile"
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <Avatar name={otherPerson?.displayName ?? 'Pixel Pal'} src={otherPerson?.avatarUrl} size="sm" />
+          <span className="truncate text-body-bold">{otherPerson?.alias ?? otherPerson?.displayName}</span>
+        </button>
         <button
           type="button"
           onClick={() => setMenuOpen(true)}
@@ -551,6 +562,12 @@ export default function PixelPalChat() {
           </Button>
         </div>
       </Modal>
+
+      <ProfilePreviewSheet
+        isOpen={profilePreviewOpen}
+        onClose={() => setProfilePreviewOpen(false)}
+        person={otherPerson}
+      />
 
       <Toast message={actionToast} isOpen={!!actionToast} />
     </div>
