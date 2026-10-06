@@ -115,6 +115,10 @@ type State = {
   sendMessage: (conversationId: string, text: string) => void
   simulateReply: (conversationId: string) => void
   shareMyProfile: (conversationId: string) => void
+  /** Takes back a one-sided share — only while the other person hasn't
+   * shared theirs yet. Once both have shared, the reveal is complete and
+   * this is a no-op. */
+  hideMyProfile: (conversationId: string) => void
   simulateOtherSharesProfile: (conversationId: string) => void
 
   // Conversation-level actions — see the chat header's overflow menu
@@ -471,6 +475,29 @@ export const useDemoStore = create<State>()(
             [conversationId]: {
               ...convo,
               profileShared: { ...convo.profileShared, [ME_ID]: true },
+              messages: [...convo.messages, system],
+            },
+          },
+        }))
+      },
+
+      hideMyProfile: (conversationId: string) => {
+        const convo = get().conversations[conversationId]
+        const otherId = convo?.participantIds.find((id) => id !== ME_ID)
+        if (!convo || !otherId || !convo.profileShared?.[ME_ID] || convo.profileShared?.[otherId]) return
+        const system: ChatMessage = {
+          id: nextId('msg'),
+          senderId: ME_ID,
+          text: 'You hid your profile.',
+          createdAt: new Date().toISOString(),
+          system: true,
+        }
+        set((st) => ({
+          conversations: {
+            ...st.conversations,
+            [conversationId]: {
+              ...convo,
+              profileShared: { ...convo.profileShared, [ME_ID]: false },
               messages: [...convo.messages, system],
             },
           },

@@ -90,10 +90,16 @@ export default function Chat() {
   const me = useDemoStore((s) => s.me)
   const sendMessage = useDemoStore((s) => s.sendMessage)
   const shareMyProfile = useDemoStore((s) => s.shareMyProfile)
+  const hideMyProfile = useDemoStore((s) => s.hideMyProfile)
   const graduateConversation = useDemoStore((s) => s.graduateConversation)
 
   const [draft, setDraft] = useState('')
   const [profileModalOpen, setProfileModalOpen] = useState(false)
+  const [hideProfileConfirmOpen, setHideProfileConfirmOpen] = useState(false)
+  // Set once she hides her profile this visit — holds back the "Ready to
+  // introduce yourself?" prompt so taking it back isn't met with an
+  // immediate ask to share again.
+  const [justHidProfile, setJustHidProfile] = useState(false)
   const [contextExpanded, setContextExpanded] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
 
@@ -317,7 +323,7 @@ export default function Chat() {
           button that could read as a required next step. */}
       {hasExchanged && !bothShared && !isReadOnly && (
         <div className="mx-4 mb-3">
-          {!meShared && (
+          {!meShared && !justHidProfile && (
             <div className="flex items-center justify-between gap-3 rounded-card bg-navy-20/30 px-3 py-2">
               <div className="min-w-0">
                 <p className="text-body-sm text-navy-80">Ready to introduce yourself?</p>
@@ -502,16 +508,33 @@ export default function Chat() {
 
       {/* Conversation options — chat management, not identity (that's "Share
           my profile" above, kept separate on purpose: it's about the
-          relationship progressing, not about managing the thread). Yellow
+          relationship progressing, not about managing the thread) — except
+          "Hide my profile", which is an exit from an identity decision and
+          so belongs with the other ways out rather than inline. Yellow
           surface + solid pill buttons — the same "Attach a File" pattern
           this chat already uses, not a bottom sheet, and the same treatment
           Pal Auto Match's own menu uses (see pal-match/PixelPalChat.tsx), so
-          every chat's More menu now shares one visual language. Just two
-          actions here — no "Block": Report already covers the safety-exit
-          case, and duplicating it as a second, near-identical action added
-          a choice without a real difference. */}
+          every chat's More menu now shares one visual language. No "Block":
+          Report already covers the safety-exit case, and duplicating it as
+          a second, near-identical action added a choice without a real
+          difference. */}
       <Modal isOpen={menuOpen} onClose={() => setMenuOpen(false)} title="Conversation" className="bg-yellow-40">
         <div className="flex flex-col gap-3">
+          {/* Only for a one-sided share: she revealed herself, they haven't,
+              and she's changed her mind. Once both have shared, the reveal
+              is complete and there's nothing to take back. */}
+          {meShared && !otherShared && !isReadOnly && (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false)
+                setHideProfileConfirmOpen(true)
+              }}
+              className="w-full rounded-pill bg-lavender-80 py-3 text-body-bold text-navy"
+            >
+              Hide my profile
+            </button>
+          )}
           <button
             type="button"
             disabled={isReadOnly}
@@ -535,6 +558,33 @@ export default function Chat() {
           </button>
           <Button variant="outline" onClick={() => setMenuOpen(false)}>
             Cancel
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={hideProfileConfirmOpen}
+        onClose={() => setHideProfileConfirmOpen(false)}
+        title="Hide your profile?"
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-body-sm text-navy-60">
+            They won't see your name and photo anymore — you'll be anonymous to each other again.
+            You can share it later if you change your mind.
+          </p>
+          <Button
+            variant="primary"
+            onClick={() => {
+              hideMyProfile(convo.id)
+              setJustHidProfile(true)
+              setHideProfileConfirmOpen(false)
+              flashToast('Your profile is hidden.')
+            }}
+          >
+            Hide my profile
+          </Button>
+          <Button variant="ghost" onClick={() => setHideProfileConfirmOpen(false)}>
+            Keep sharing
           </Button>
         </div>
       </Modal>
