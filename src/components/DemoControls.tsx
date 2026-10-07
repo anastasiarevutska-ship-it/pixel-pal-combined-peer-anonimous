@@ -23,6 +23,8 @@ export function DemoControls() {
   const simulateReply = useDemoStore((s) => s.simulateReply)
   const simulateOtherSharesProfile = useDemoStore((s) => s.simulateOtherSharesProfile)
   const simulateQuietChat = useDemoStore((s) => s.simulateQuietChat)
+  const simulateOtherGraduates = useDemoStore((s) => s.simulateOtherGraduates)
+  const simulatePalFindsSomeoneElse = useDemoStore((s) => s.simulatePalFindsSomeoneElse)
   const matchOutcomeDemo = useDemoStore((s) => s.matchOutcomeDemo)
   const setMatchOutcomeDemo = useDemoStore((s) => s.setMatchOutcomeDemo)
   const homePromoDemo = useDemoStore((s) => s.homePromoDemo)
@@ -36,11 +38,18 @@ export function DemoControls() {
     .map((id) => messageRequests[id])
     .find((r) => r?.status === 'pending')
 
+  const activePalMatch = Object.values(conversations).find(
+    (c) => c.origin === 'pal_match' && c.participantIds.includes(ME_ID) && c.status === 'active',
+  )
+
   const chatMatch = pathname.match(/\/chat\/([^/]+)/)
   const conversationList = Object.values(conversations)
   const activeConversation = chatMatch
     ? conversations[chatMatch[1]]
     : conversationList[conversationList.length - 1]
+
+  // Legacy chats with no `status` count as active, same as everywhere else.
+  const isActive = !!activeConversation && (!activeConversation.status || activeConversation.status === 'active')
 
   return (
     <div className="fixed bottom-5 right-5 z-[100] flex flex-col items-end gap-2">
@@ -106,10 +115,7 @@ export function DemoControls() {
             </button>
             <button
               type="button"
-              disabled={
-                !activeConversation ||
-                (!!activeConversation.status && activeConversation.status !== 'active')
-              }
+              disabled={!isActive}
               onClick={() => {
                 if (!activeConversation) return
                 simulateQuietChat(activeConversation.id)
@@ -121,6 +127,23 @@ export function DemoControls() {
             >
               2 weeks of silence → reminder
             </button>
+            {/* The other person graduates — pushes from outside the chat,
+                same as the reminder above; tapping the push comes back. */}
+            {([true, false] as const).map((withThankYou) => (
+              <button
+                key={String(withThankYou)}
+                type="button"
+                disabled={!isActive}
+                onClick={() => {
+                  if (!activeConversation) return
+                  simulateOtherGraduates(activeConversation.id, withThankYou)
+                  navigate('/messages')
+                }}
+                className="rounded-field border border-navy-20 px-3 py-2 text-left text-body-sm disabled:opacity-40"
+              >
+                {withThankYou ? 'They graduate + thank-you' : 'They graduate (no message)'}
+              </button>
+            ))}
           </div>
 
           <p className="mb-1 text-label-bold text-navy-60">GO TO</p>
@@ -154,6 +177,22 @@ export function DemoControls() {
               className="rounded-field border border-navy-20 px-3 py-1.5 text-label-bold text-navy disabled:opacity-40"
             >
               Latest chat
+            </button>
+          </div>
+
+          <p className="mb-1 text-label-bold text-navy-60">PAL AUTO MATCH — your Pal</p>
+          <div className="mb-3 flex flex-col gap-1.5">
+            <button
+              type="button"
+              disabled={!activePalMatch}
+              onClick={() => {
+                if (!activePalMatch) return
+                simulatePalFindsSomeoneElse(activePalMatch.id)
+                navigate('/messages')
+              }}
+              className="rounded-field border border-navy-20 px-3 py-2 text-left text-body-sm disabled:opacity-40"
+            >
+              Pal finds someone else
             </button>
           </div>
 

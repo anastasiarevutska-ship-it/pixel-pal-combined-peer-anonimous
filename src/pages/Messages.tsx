@@ -22,7 +22,7 @@ import iconUserHeart from '../assets/shared/icon-user-heart.svg'
 function conversationStatusLabel(status: ConversationStatus): string | undefined {
   if (status === 'graduated') return 'Graduated'
   if (status === 'blocked') return 'Blocked'
-  if (status === 'ended') return 'Ended'
+  if (status === 'ended') return 'Archived'
   return undefined
 }
 

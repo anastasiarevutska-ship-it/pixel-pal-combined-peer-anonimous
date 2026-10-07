@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { lastActivityAt, QUIET_AFTER_DAYS } from '../lib/quietChat'
+import { canSayThanks } from '../lib/graduation'
 import { me, ME_ID, palMatchPeople, people, reserveResponders, seedAsks } from '../lib/seed'
 import type { Ask, ChatMessage, Conversation, ConversationStatus, MessageRequest, Person } from '../lib/types'
 
@@ -17,6 +18,13 @@ function nextId(prefix: string) {
 function isConversationClosed(status: ConversationStatus): boolean {
   return status === 'graduated' || status === 'blocked' || status === 'ended' || status === 'reported'
 }
+
+// Demo thank-you notes for "They graduate + thank-you" — warm, specific
+// enough to read as a real person, never medical.
+const farewellLines = [
+  "Thank you for every message these past weeks — you made the waiting so much lighter. Wishing you all the luck. 💜",
+  "I'm so glad we found each other here. Talking to you helped more than I can say. Take care of yourself.",
+]
 
 const incomingIntroLines = [
   "I've been through something similar — happy to talk if it would help.",
@@ -122,18 +130,31 @@ type State = {
   simulateOtherSharesProfile: (conversationId: string) => void
 
   // Conversation-level actions — see the chat header's overflow menu
-  graduateConversation: (conversationId: string) => void
+  /** `thankYou` — her optional note to the other person, shown to them as
+   * a farewell card (see lib/graduation). */
+  graduateConversation: (conversationId: string, thankYou?: string) => void
+  /** Her one thank-you back after the *other* person graduated — sent from
+   * the graduation push; shows in the archived chat. */
+  sendFarewell: (conversationId: string, text: string) => void
   blockPerson: (conversationId: string) => void
 
   // Demo-only: rewinds a chat's clock past QUIET_AFTER_DAYS (lib/quietChat)
   // and fires the reminder push, so the quiet-chat state can be shown
   // without waiting two real weeks.
   simulateQuietChat: (conversationId: string) => void
+  // Demo-only: the other person ends things from their side.
+  simulateOtherGraduates: (conversationId: string, withThankYou: boolean) => void
+  simulatePalFindsSomeoneElse: (conversationId: string) => void
   /** The one push banner currently on screen — transient, never persisted. */
-  pushNotification: { conversationId: string } | null
+  pushNotification: PushNotification | null
   dismissPush: () => void
 
   resetDemo: () => void
+}
+
+export type PushNotification = {
+  conversationId: string
+  kind: 'quiet' | 'graduated' | 'ended'
 }
 
 /** Requests *I* sent that the other person accepted and I haven't opened the
@@ -399,6 +420,7 @@ export const useDemoStore = create<State>()(
               ...convo,
               status: 'ended',
               endedReason: 'rematched',
+              endedBy: ME_ID,
               messages: [...convo.messages, system],
             },
           },
@@ -529,7 +551,7 @@ export const useDemoStore = create<State>()(
         }))
       },
 
-      graduateConversation: (conversationId: string) => {
+      graduateConversation: (conversationId: string, thankYou?: string) => {
         const s = get()
         const convo = s.conversations[conversationId]
         // Checked positively, not `!== 'active'` — a conversation created
@@ -551,7 +573,12 @@ export const useDemoStore = create<State>()(
         set((st) => ({
           conversations: {
             ...st.conversations,
-            [conversationId]: { ...convo, status: 'graduated', messages: [...convo.messages, system] },
+            [conversationId]: {
+              ...convo,
+              status: 'graduated',
+              graduation: { by: ME_ID, at: system.createdAt, thankYou: thankYou?.trim() || undefined },
+              messages: [...convo.messages, system],
+            },
           },
         }))
       },
@@ -599,7 +626,81 @@ export const useDemoStore = create<State>()(
               messages: convo.messages.map((m) => ({ ...m, createdAt: back(m.createdAt) })),
             },
           },
-          pushNotification: { conversationId },
+          pushNotification: { conversationId, kind: 'quiet' },
+        }))
+      },
+
+      sendFarewell: (conversationId: string, text: string) => {
+        const convo = get().conversations[conversationId]
+        if (!convo?.graduation || !canSayThanks(convo) || !text.trim()) return
+        set((st) => ({
+          conversations: {
+            ...st.conversations,
+            [conversationId]: {
+              ...convo,
+              graduation: {
+                ...convo.graduation!,
+                reply: { text: text.trim(), at: new Date().toISOString() },
+              },
+            },
+          },
+        }))
+      },
+
+      simulateOtherGraduates: (conversationId: string, withThankYou: boolean) => {
+        const convo = get().conversations[conversationId]
+        const otherId = convo?.participantIds.find((id) => id !== ME_ID)
+        if (!convo || !otherId || isConversationClosed(convo.status)) return
+        const system: ChatMessage = {
+          id: nextId('msg'),
+          senderId: otherId,
+          text: 'They graduated from this chat.',
+          createdAt: new Date().toISOString(),
+          system: true,
+        }
+        set((st) => ({
+          conversations: {
+            ...st.conversations,
+            [conversationId]: {
+              ...convo,
+              status: 'graduated',
+              graduation: {
+                by: otherId,
+                at: system.createdAt,
+                thankYou: withThankYou ? farewellLines[convo.messages.length % farewellLines.length] : undefined,
+              },
+              messages: [...convo.messages, system],
+            },
+          },
+          pushNotification: { conversationId, kind: 'graduated' },
+        }))
+      },
+
+      simulatePalFindsSomeoneElse: (conversationId: string) => {
+        const convo = get().conversations[conversationId]
+        const otherId = convo?.participantIds.find((id) => id !== ME_ID)
+        if (!convo || !otherId || convo.origin !== 'pal_match' || convo.status !== 'active') return
+        // Deliberately reasonless — the same courtesy her own "Find someone
+        // else" extends to her Pal (see endPalMatchForRematch).
+        const system: ChatMessage = {
+          id: nextId('msg'),
+          senderId: otherId,
+          text: 'This chat has ended.',
+          createdAt: new Date().toISOString(),
+          system: true,
+        }
+        set((st) => ({
+          conversations: {
+            ...st.conversations,
+            [conversationId]: {
+              ...convo,
+              status: 'ended',
+              endedReason: 'rematched',
+              endedBy: otherId,
+              messages: [...convo.messages, system],
+            },
+          },
+          pushNotification: { conversationId, kind: 'ended' },
         }))
       },
 

@@ -4,6 +4,8 @@ import { useDemoStore } from '../../store/useDemoStore'
 import { ME_ID } from '../../lib/seed'
 import { anonymousPalIdentities } from '../../lib/palLabel'
 import { QuietChatNotice } from '../../components/QuietChatNotice'
+import { ChatClosure, GraduationNotes } from '../../components/ChatEnding'
+import { TextArea } from '../../components/ui/TextArea'
 import { ProfilePreviewSheet } from '../../components/ProfilePreviewSheet'
 import { SocialProfileCard } from '../../components/SocialProfileCard'
 import { Avatar } from '../../components/ui/Avatar'
@@ -122,6 +124,7 @@ export default function Chat() {
   // rest of this file's style (profileModalOpen, reminderOpen, …).
   const [menuOpen, setMenuOpen] = useState(false)
   const [graduateConfirmOpen, setGraduateConfirmOpen] = useState(false)
+  const [graduateNote, setGraduateNote] = useState('')
   const [reportOpen, setReportOpen] = useState(false)
   const [reportSubmittedOpen, setReportSubmittedOpen] = useState(false)
   const [actionToast, setActionToast] = useState('')
@@ -172,6 +175,7 @@ export default function Chat() {
   // Same stable nickname as Messages and Your Post (see lib/palLabel) —
   // this connection must read as the same person here as it does there.
   const anon = anonymousPalIdentities(Object.values(conversations), me, people)[convo.id]
+  const otherName = (bothShared ? otherPerson?.displayName : anon?.name) ?? 'your peer'
   // The profile-sharing prompt is demo-gated behind an actual back-and-forth
   // — showing it the instant the chat opens (before she's said anything
   // herself) would front-load an identity decision ahead of the
@@ -230,8 +234,9 @@ export default function Chat() {
 
   function handleGraduateConfirm() {
     if (!convo) return
-    graduateConversation(convo.id)
+    graduateConversation(convo.id, graduateNote)
     setGraduateConfirmOpen(false)
+    setGraduateNote('')
     flashToast('Conversation graduated — kept as a read-only record.')
   }
 
@@ -330,8 +335,9 @@ export default function Chat() {
               </div>
             )
           })}
+          <GraduationNotes convo={convo} otherName={otherName} />
           {!isReadOnly && (
-            <QuietChatNotice convo={convo} otherName={bothShared ? otherPerson?.displayName : anon?.name} />
+            <QuietChatNotice convo={convo} otherName={otherName} />
           )}
           <div ref={endRef} />
         </div>
@@ -381,16 +387,11 @@ export default function Chat() {
       </button>
 
       {isReadOnly ? (
-        // Read-only record — graduated or blocked, either way nothing new
-        // gets typed here again, so the composer itself is gone rather than
-        // just disabled (a grayed-out input would still invite a tap).
-        <div className="mt-auto border-t border-lavender-20 px-4 py-3">
-          <p className="text-center text-label text-navy-40">
-            {convo.status === 'graduated'
-              ? "You graduated from this chat. It's kept here as a read-only record."
-              : "You blocked this person. This conversation is now read-only."}
-          </p>
-        </div>
+        // Read-only record — graduated or blocked. The composer itself is
+        // gone rather than disabled (a grayed-out input would still invite
+        // a tap) — except for the one thank-you she gets after the other
+        // person graduates (see ChatClosure).
+        <ChatClosure convo={convo} otherName={otherName} />
       ) : (
       <div className="relative mt-auto flex flex-col gap-2 border-t border-lavender-20 px-4 py-2">
         {attachment && (
@@ -660,6 +661,16 @@ export default function Chat() {
             You won't be able to send new messages here, but the conversation stays as a read-only
             record — it won't disappear.
           </p>
+          {/* Optional thank-you — same as Pixel Pal's graduate step, so
+              both chats close the same way (see GraduationNotes). */}
+          <TextArea
+            rows={3}
+            maxLength={280}
+            value={graduateNote}
+            onChange={(e) => setGraduateNote(e.target.value)}
+            placeholder={`Write a thank-you to ${otherName} — optional`}
+            aria-label="Thank-you message"
+          />
           <Button variant="primary" onClick={handleGraduateConfirm}>
             Graduate from chat
           </Button>

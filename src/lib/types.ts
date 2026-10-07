@@ -151,10 +151,31 @@ export type Conversation = {
 
   /** Only set when `status === 'ended'` — see `ConversationEndedReason`. */
   endedReason?: ConversationEndedReason
+  /** Only set when `status === 'ended'` — who chose to move on. Her own
+   * "Find someone else" vs. her Pal's; decides the copy she sees (the Pal's
+   * reason is never shown — see lib/graduation). Absent on older demos,
+   * which only ever ended from her side. */
+  endedBy?: PersonId
+
+  /** Only set when `status === 'graduated'` — see `Graduation`. */
+  graduation?: Graduation
 
   /** Only set when `status === 'reported'` — the free-text reason she gave
    * when reporting this Pal. Kept as the minimum internal record needed to
    * represent the report; never surfaced in any UI (the conversation itself
    * is no longer reachable once this is set). */
   reportReason?: string
+}
+
+/**
+ * How a chat graduated — it's archived right away. Whoever graduated may
+ * leave an optional thank-you; the other side can send one back from the
+ * graduation push (see lib/graduation), and both show in the archived chat.
+ */
+export type Graduation = {
+  by: PersonId
+  at: string
+  thankYou?: string
+  /** The other side's thank-you, sent back from the graduation push. */
+  reply?: { text?: string; at: string }
 }

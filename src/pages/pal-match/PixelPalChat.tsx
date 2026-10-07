@@ -10,6 +10,7 @@ import { TextArea } from '../../components/ui/TextArea'
 import { Toast } from '../../components/ui/Toast'
 import { ReportReasonScreen } from '../../components/ReportReasonScreen'
 import { QuietChatNotice } from '../../components/QuietChatNotice'
+import { ChatClosure, GraduationNotes } from '../../components/ChatEnding'
 import { ProfilePreviewSheet } from '../../components/ProfilePreviewSheet'
 
 const starters = [
@@ -160,6 +161,9 @@ export default function PixelPalChat() {
   // all (see the guard above) and `blocked` never applies to a pal_match
   // conversation (that's Ask's own safety exit).
   const isReadOnly = convo.status !== 'active'
+  const hasActivePalMatch = Object.values(conversations).some(
+    (c) => c.origin === 'pal_match' && c.participantIds.includes(ME_ID) && c.status === 'active',
+  )
 
   function handleSend() {
     if ((!draft.trim() && !attachment) || !convo) return
@@ -199,14 +203,11 @@ export default function PixelPalChat() {
 
   // Graduate — a positive, natural close-out, distinct from "Find someone
   // else" (a mismatch) and "Report" (a safety exit). The optional final
-  // message, if she writes one, goes in as her own last normal message
-  // *before* graduateConversation appends its own read-only system line —
-  // ordering matters here, not two independent writes.
+  // message rides along with the graduation as a thank-you note, shown as a
+  // farewell card rather than an ordinary bubble (see GraduationNotes).
   function handleGraduateConfirm() {
     if (!convo) return
-    const trimmed = finalMessage.trim()
-    if (trimmed) sendMessage(convo.id, trimmed)
-    graduateConversation(convo.id)
+    graduateConversation(convo.id, finalMessage)
     setGraduateOpen(false)
     setFinalMessage('')
     flashToast('Graduated — kept as a read-only record.')
@@ -295,6 +296,7 @@ export default function PixelPalChat() {
               </div>
             )
           })}
+          <GraduationNotes convo={convo} otherName={palName} />
           {!isReadOnly && <QuietChatNotice convo={convo} otherName={palName} />}
           <div ref={endRef} />
         </div>
@@ -340,13 +342,13 @@ export default function PixelPalChat() {
           own read-only treatment: a grayed-out input would still invite a
           tap. */}
       {isReadOnly ? (
-        <div className="border-t border-navy-20 px-4 py-3">
-          <p className="text-center text-label text-navy-40">
-            {convo.status === 'graduated'
-              ? "You graduated from this chat. It's kept here as a read-only record."
-              : 'You found someone else. This conversation is kept here as a read-only record.'}
-          </p>
-        </div>
+        <ChatClosure
+          convo={convo}
+          otherName={palName}
+          // Only once nothing else is active — one Pal at a time, same rule
+          // as openPalMatchConversation and the Messages entry card.
+          onFindNewPal={hasActivePalMatch ? undefined : () => navigate('/pixel-pal-match/finding')}
+        />
       ) : (
       <div className="border-t border-navy-20 pt-3">
         {attachment && (
