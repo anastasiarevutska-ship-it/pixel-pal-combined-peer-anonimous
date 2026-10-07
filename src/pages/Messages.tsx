@@ -135,7 +135,7 @@ export default function Messages() {
     .filter((c) => c.participantIds.includes(ME_ID))
     // Reported conversations must disappear from Messages entirely — not a
     // read-only row, not a badge, gone — and never come back (see
-    // reportPalMatchConversation in the store).
+    // reportConversation in the store).
     .filter((c) => c.status !== 'reported')
     .sort((a, b) => lastActivityAt(b).localeCompare(lastActivityAt(a)))
   // Active chats first (her one active Pixel Pal pinned above peer chats),

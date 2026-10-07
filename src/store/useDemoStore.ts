@@ -96,17 +96,17 @@ type State = {
    * never deletes it or touches its messages beyond appending the same kind
    * of system line graduate/block already use. */
   endPalMatchForRematch: (conversationId: string) => void
-  /** "Report a concern" on a pal_match conversation — a safety/moderation
+  /** "Report a concern" — in a Pixel Pal or a peer chat. A safety/moderation
    * exit, fundamentally different from `endPalMatchForRematch` (a mismatch,
    * still a normal outcome) and from `graduateConversation` (a positive
    * close-out). Marks it `status: 'reported'` and records `reason`; also
    * adds the other participant to `blockedPersonIds` so they're excluded
    * from any future pal_match candidate the demo could offer (see
-   * `openPalMatchConversation`). Never deletes the conversation — Messages
+   * `openPalMatchConversation`). Either origin disappears from Messages. Never deletes the conversation — Messages
    * and the chat route are what actually make it disappear/unreachable, by
    * filtering on this status; the record itself stays as the minimum
    * internal trace needed to represent the report. */
-  reportPalMatchConversation: (conversationId: string, reason: string) => void
+  reportConversation: (conversationId: string, reason: string) => void
   /** Edits the one shared Social Profile (`me`) — same record Ask's own
    * profile-reveal modal reads, per the "one Social Profile, never a second
    * identity" rule both prototypes use. This only writes to it; it does not
@@ -427,10 +427,10 @@ export const useDemoStore = create<State>()(
         }))
       },
 
-      reportPalMatchConversation: (conversationId: string, reason: string) => {
+      reportConversation: (conversationId: string, reason: string) => {
         const s = get()
         const convo = s.conversations[conversationId]
-        if (!convo || convo.origin !== 'pal_match' || convo.status === 'reported') return
+        if (!convo || convo.status === 'reported') return
         const otherId = convo.participantIds.find((id) => id !== ME_ID)
         if (!otherId) return
         set((st) => ({

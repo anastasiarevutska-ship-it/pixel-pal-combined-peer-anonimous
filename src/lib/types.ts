@@ -98,13 +98,12 @@ export type ChatMessage = {
  * `simulateAskAuthorResponds`/`graduateConversation`/`blockPerson` never
  * produce this value.
  *
- * `reported` — Pal Auto Match only: a safety/moderation exit distinct from
+ * `reported` — either origin: a safety/moderation exit distinct from
  * both `blocked` (Ask's own safety exit, which stays visible as a read-only
  * record) and `ended`/`graduated` (both ordinary relationship endings that
  * stay visible). A reported conversation must disappear from the reporting
  * user's Messages entirely and never be reachable again — see
- * `reportPalMatchConversation` in the store. Ask's actions never produce
- * this value either.
+ * `reportConversation` in the store.
  */
 export type ConversationStatus = 'active' | 'graduated' | 'blocked' | 'ended' | 'reported'
 

@@ -15,6 +15,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Sheet } from '../../components/ui/Sheet'
 import { Toast } from '../../components/ui/Toast'
 import { ReportReasonScreen } from '../../components/ReportReasonScreen'
+import { ReportSentScreen } from '../../components/ReportSentScreen'
 
 function ChevronLeft() {
   return (
@@ -98,6 +99,7 @@ export default function Chat() {
   const shareMyProfile = useDemoStore((s) => s.shareMyProfile)
   const hideMyProfile = useDemoStore((s) => s.hideMyProfile)
   const graduateConversation = useDemoStore((s) => s.graduateConversation)
+  const reportConversation = useDemoStore((s) => s.reportConversation)
 
   const [draft, setDraft] = useState('')
   // Reopened on return from "Edit Social Profile" (see the share sheet).
@@ -156,7 +158,9 @@ export default function Chat() {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [convo?.messages.length])
 
-  if (!convo) {
+  // A reported chat is gone, not read-only — same as Pixel Pal. Kept
+  // rendering only while the "report sent" screen is still on top of it.
+  if (!convo || (convo.status === 'reported' && !reportSubmittedOpen)) {
     return (
       <div className="flex flex-col gap-4 p-5">
         <button type="button" onClick={() => navigate('/groups/pixel-pal')} className="text-label-bold text-navy-60">
@@ -240,9 +244,12 @@ export default function Chat() {
     flashToast('Conversation graduated — kept as a read-only record.')
   }
 
-  function handleSubmitReport(_reason: string) {
-    // Prototype/mocked flow only — see spec's "not built": no real reporting
-    // pipeline, just enough to show the affordance and its confirmation.
+  // Removes the chat for good (see reportConversation) — the confirmation
+  // screen says so. No real moderation pipeline behind it (spec's "not
+  // built"), just the outcome she'd see.
+  function handleSubmitReport(reason: string) {
+    if (!convo) return
+    reportConversation(convo.id, reason)
     setReportOpen(false)
     setReportSubmittedOpen(true)
   }
@@ -680,24 +687,18 @@ export default function Chat() {
         </div>
       </Modal>
 
-      {/* Report — mocked flow (see spec's "not built": no real reporting
-          pipeline for this prototype), just enough to show the affordance
-          exists and where it lives. Full-screen reason picker (matching the
-          reference, Figma node 16895:36686) plus a small confirmation card,
-          shared with Pal Auto Match's PixelPalChat.tsx. */}
-      <ReportReasonScreen isOpen={reportOpen} onBack={() => setReportOpen(false)} onSubmit={handleSubmitReport} />
+      {/* Report — full-screen reason picker (Figma node 16895:36686), then
+          a full-screen confirmation; both shared with PixelPalChat.tsx. */}
+      <ReportReasonScreen title="Report Peer" isOpen={reportOpen} onBack={() => setReportOpen(false)} onSubmit={handleSubmitReport} />
 
-      <Modal isOpen={reportSubmittedOpen} onClose={() => setReportSubmittedOpen(false)}>
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div>
-            <p className="text-body-bold text-navy">Your report has been submitted.</p>
-            <p className="mt-1 text-body-sm text-navy-60">This is the next step.</p>
-          </div>
-          <Button variant="soft" onClick={() => setReportSubmittedOpen(false)}>
-            Close
-          </Button>
-        </div>
-      </Modal>
+      <ReportSentScreen
+        isOpen={reportSubmittedOpen}
+        kind="peer"
+        onClose={() => {
+          setReportSubmittedOpen(false)
+          navigate('/messages')
+        }}
+      />
 
       <Toast message={actionToast} isOpen={!!actionToast} />
     </div>

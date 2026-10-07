@@ -160,7 +160,8 @@ export default function MyAsk() {
                     const convo = Object.values(conversations).find(
                       (c) => c.askId === myAsk.id && c.participantIds.includes(request.responderId),
                     )
-                    if (!convo) return null
+                    // Reported chats are gone everywhere, here included.
+                    if (!convo || convo.status === 'reported') return null
                     const anon = anonIdentities[convo.id]
                     const otherId = convo.participantIds.find((id) => id !== ME_ID)
                     const bothShared =

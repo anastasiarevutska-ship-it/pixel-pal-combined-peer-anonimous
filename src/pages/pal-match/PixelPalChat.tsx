@@ -9,6 +9,7 @@ import { Modal } from '../../components/ui/Modal'
 import { TextArea } from '../../components/ui/TextArea'
 import { Toast } from '../../components/ui/Toast'
 import { ReportReasonScreen } from '../../components/ReportReasonScreen'
+import { ReportSentScreen } from '../../components/ReportSentScreen'
 import { QuietChatNotice } from '../../components/QuietChatNotice'
 import { ChatClosure, GraduationNotes } from '../../components/ChatEnding'
 import { ProfilePreviewSheet } from '../../components/ProfilePreviewSheet'
@@ -111,7 +112,7 @@ export default function PixelPalChat() {
   const sendMessage = useDemoStore((s) => s.sendMessage)
   const endPalMatchForRematch = useDemoStore((s) => s.endPalMatchForRematch)
   const graduateConversation = useDemoStore((s) => s.graduateConversation)
-  const reportPalMatchConversation = useDemoStore((s) => s.reportPalMatchConversation)
+  const reportConversation = useDemoStore((s) => s.reportConversation)
 
   const [draft, setDraft] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
@@ -134,9 +135,9 @@ export default function PixelPalChat() {
 
   // 'reported' is deliberately treated the same as "doesn't exist" — a
   // reported conversation must be unreachable, not a read-only record (see
-  // reportPalMatchConversation in the store). Hitting this URL directly
+  // reportConversation in the store). Hitting this URL directly
   // after reporting must not restore access to it. `!reportSubmittedOpen`
-  // keeps this guard from firing mid-transition: reportPalMatchConversation
+  // keeps this guard from firing mid-transition: reportConversation
   // flips the status the instant Send Report is tapped, before she's seen
   // the "submitted" confirmation, and without that check this would swap
   // the confirmation out from under her.
@@ -214,21 +215,16 @@ export default function PixelPalChat() {
   }
 
   // Report — a safety/moderation exit, not a normal relationship ending.
-  // Disconnects right away (reportPalMatchConversation marks the
+  // Disconnects right away (reportConversation marks the
   // conversation unreachable — see the store action and the `!convo ||
   // status === 'reported'` guard above); the "submitted" confirmation is
   // just an acknowledgment before she's routed back into the matching flow,
   // not a step she can back out of.
   function handleSubmitReport(reason: string) {
     if (!convo) return
-    reportPalMatchConversation(convo.id, reason)
+    reportConversation(convo.id, reason)
     setReportOpen(false)
     setReportSubmittedOpen(true)
-  }
-
-  function handleCloseReportSubmitted() {
-    setReportSubmittedOpen(false)
-    navigate('/pixel-pal-match/finding')
   }
 
   return (
@@ -548,22 +544,23 @@ export default function PixelPalChat() {
 
       {/* Report — a safety/moderation exit. Full-screen reason picker
           (matching the reference, Figma node 16895:36686) instead of the
-          old free-text-only modal, then a small confirmation card — this
-          ends the connection right away (reportPalMatchConversation), so
+          old free-text-only modal, then a full-screen confirmation — this
+          ends the connection right away (reportConversation), so
           the confirmation is an acknowledgment, not a step to back out of. */}
-      <ReportReasonScreen isOpen={reportOpen} onBack={() => setReportOpen(false)} onSubmit={handleSubmitReport} />
+      <ReportReasonScreen title="Report Pixel Pal" isOpen={reportOpen} onBack={() => setReportOpen(false)} onSubmit={handleSubmitReport} />
 
-      <Modal isOpen={reportSubmittedOpen} onClose={handleCloseReportSubmitted}>
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div>
-            <p className="text-body-bold text-navy">Your report has been submitted.</p>
-            <p className="mt-1 text-body-sm text-navy-60">This is the next step.</p>
-          </div>
-          <Button variant="soft" onClick={handleCloseReportSubmitted}>
-            Close
-          </Button>
-        </div>
-      </Modal>
+      <ReportSentScreen
+        isOpen={reportSubmittedOpen}
+        kind="pal"
+        onFindNewPal={() => {
+          setReportSubmittedOpen(false)
+          navigate('/pixel-pal-match/finding')
+        }}
+        onClose={() => {
+          setReportSubmittedOpen(false)
+          navigate('/messages')
+        }}
+      />
 
       <ProfilePreviewSheet
         isOpen={profilePreviewOpen}
