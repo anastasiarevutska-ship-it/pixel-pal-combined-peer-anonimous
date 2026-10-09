@@ -145,6 +145,10 @@ type State = {
   // Demo-only: the other person ends things from their side.
   simulateOtherGraduates: (conversationId: string, withThankYou: boolean) => void
   simulatePalFindsSomeoneElse: (conversationId: string) => void
+  /** Demo-only: replaces her conversations with a full Messages hub — one of
+   * every active chat kind plus four past ones — so the inbox can be shown
+   * without walking every flow first. */
+  simulateFullInbox: () => void
   /** The one push banner currently on screen — transient, never persisted. */
   pushNotification: PushNotification | null
   dismissPush: () => void
@@ -701,6 +705,144 @@ export const useDemoStore = create<State>()(
             },
           },
           pushNotification: { conversationId, kind: 'ended' },
+        }))
+      },
+
+      simulateFullInbox: () => {
+        const s = get()
+        const ago = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString()
+        const msg = (senderId: string, text: string, h: number, system = false): ChatMessage => ({
+          id: nextId('msg'),
+          senderId,
+          text,
+          createdAt: ago(h),
+          ...(system && { system: true }),
+        })
+        const pal = (
+          otherId: string,
+          createdH: number,
+          messages: ChatMessage[],
+          extra: Partial<Conversation> = {},
+        ): Conversation => ({
+          id: nextId('convo'),
+          origin: 'pal_match',
+          participantIds: [ME_ID, otherId],
+          messages,
+          status: 'active',
+          createdAt: ago(createdH),
+          ...extra,
+        })
+        const ask = (
+          askId: string,
+          createdH: number,
+          messages: ChatMessage[],
+          extra: Partial<Conversation> = {},
+        ): Conversation => {
+          const a = s.asks[askId]
+          return {
+            id: nextId('convo'),
+            origin: 'ask',
+            askId,
+            askSnippet: a?.text ?? '',
+            participantIds: [a?.authorId ?? askId, ME_ID],
+            messages,
+            profileShared: { [a?.authorId ?? askId]: false, [ME_ID]: false },
+            status: 'active',
+            createdAt: ago(createdH),
+            ...extra,
+          }
+        }
+
+        const list: Conversation[] = [
+          // --- Active ---
+          // Her one active Pixel Pal.
+          pal('p_river', 72, [
+            msg(ME_ID, 'Hi River! So glad we matched.', 70),
+            msg('p_river', 'Hi Samantha! Me too — how are you feeling this week?', 69),
+            msg(ME_ID, 'Honestly a bit anxious, appointment on Thursday.', 3),
+            msg('p_river', "Thursday is soon! I'll be thinking of you. 💜", 1),
+          ]),
+          // Anonymous peer chat, just accepted → "New" badge.
+          ask('ask_1', 0.5, [msg(ME_ID, incomingIntroLines[0], 0.5)]),
+          // Anonymous, ongoing.
+          ask('ask_2', 30, [
+            msg(ME_ID, incomingIntroLines[1], 30),
+            msg('p_nova', replyLines[2], 28),
+            msg(ME_ID, 'The waiting is the worst part for me too.', 6),
+          ]),
+          // Both shared profiles → real name, "Peer chat".
+          ask(
+            'ask_3',
+            120,
+            [
+              msg(ME_ID, incomingIntroLines[2], 120),
+              msg('p_juniper', replyLines[0], 118),
+              msg(ME_ID, 'You shared your profile.', 100, true),
+              msg('p_juniper', "You're both sharing profiles now.", 99, true),
+              msg('p_juniper', 'So nice to put a name to the messages!', 20),
+            ],
+            { profileShared: { p_juniper: true, [ME_ID]: true } },
+          ),
+          // Quiet for over two weeks.
+          ask('ask_4', 24 * 20, [
+            msg(ME_ID, incomingIntroLines[3], 24 * 20),
+            msg('p_sage', replyLines[3], 24 * 15 + 2),
+          ]),
+
+          // --- Past ---
+          pal(
+            'p_ellis',
+            24 * 60,
+            [
+              msg('p_ellis', 'Hey! Nice to meet you.', 24 * 60),
+              msg(ME_ID, 'Thank you for everything, Ellis.', 24 * 30),
+              msg(ME_ID, 'You graduated from this chat. It stays here as a read-only record.', 24 * 30, true),
+            ],
+            {
+              status: 'graduated',
+              graduation: { by: ME_ID, at: ago(24 * 30), thankYou: farewellLines[0] },
+            },
+          ),
+          pal(
+            'p_ash',
+            24 * 45,
+            [
+              msg('p_ash', 'Hi there!', 24 * 45),
+              msg(ME_ID, 'You found someone else. This conversation is kept here as a record.', 24 * 40, true),
+            ],
+            { status: 'ended', endedReason: 'rematched', endedBy: ME_ID },
+          ),
+          ask(
+            'ask_5',
+            24 * 50,
+            [
+              msg(ME_ID, incomingIntroLines[0], 24 * 50),
+              msg('p_marlowe', replyLines[1], 24 * 49),
+              msg('p_marlowe', 'They graduated from this chat.', 24 * 25, true),
+            ],
+            {
+              status: 'graduated',
+              graduation: { by: 'p_marlowe', at: ago(24 * 25), thankYou: farewellLines[1] },
+            },
+          ),
+          ask(
+            'ask_6',
+            24 * 35,
+            [
+              msg(ME_ID, incomingIntroLines[1], 24 * 35),
+              msg(ME_ID, "You blocked this person. You won't hear from them again here.", 24 * 33, true),
+            ],
+            { status: 'blocked' },
+          ),
+        ]
+
+        set((st) => ({
+          people: { ...st.people, ...Object.fromEntries(palMatchPeople.map((p) => [p.id, p])) },
+          conversations: Object.fromEntries(list.map((c) => [c.id, c])),
+          blockedPersonIds: st.blockedPersonIds.includes('p_iris')
+            ? st.blockedPersonIds
+            : [...st.blockedPersonIds, 'p_iris'],
+          pushNotification: null,
         }))
       },
 

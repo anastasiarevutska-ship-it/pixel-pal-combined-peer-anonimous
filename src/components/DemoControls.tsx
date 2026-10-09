@@ -25,6 +25,7 @@ export function DemoControls() {
   const simulateQuietChat = useDemoStore((s) => s.simulateQuietChat)
   const simulateOtherGraduates = useDemoStore((s) => s.simulateOtherGraduates)
   const simulatePalFindsSomeoneElse = useDemoStore((s) => s.simulatePalFindsSomeoneElse)
+  const simulateFullInbox = useDemoStore((s) => s.simulateFullInbox)
   const matchOutcomeDemo = useDemoStore((s) => s.matchOutcomeDemo)
   const setMatchOutcomeDemo = useDemoStore((s) => s.setMatchOutcomeDemo)
   const homePromoDemo = useDemoStore((s) => s.homePromoDemo)
@@ -54,8 +55,22 @@ export function DemoControls() {
   return (
     <div className="fixed bottom-5 right-5 z-[100] flex flex-col items-end gap-2">
       {open && (
-        <div className="w-72 rounded-card border-2 border-dashed border-coral bg-white p-4 shadow-card">
+        <div className="max-h-[calc(100vh-6rem)] w-72 overflow-y-auto rounded-card border-2 border-dashed border-coral bg-white p-4 shadow-card">
           <p className="mb-3 text-label-bold text-coral">DEMO CONTROLS — NOT PRODUCT UI</p>
+
+          <p className="mb-1 text-label-bold text-navy-60">MESSAGES HUB</p>
+          <div className="mb-3 flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                simulateFullInbox()
+                navigate('/messages')
+              }}
+              className="rounded-field border border-navy-20 px-3 py-2 text-left text-body-sm"
+            >
+              Fill hub: all chat types + 4 past
+            </button>
+          </div>
 
           <p className="mb-1 text-label-bold text-navy-60">ON YOUR ASK</p>
           <div className="mb-3 flex flex-col gap-1.5">
